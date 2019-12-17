@@ -36,16 +36,16 @@ class DictList(dict):
             super(DictList, self).__setitem__(key, [self[key], value])    
 
 
-def generate_index(data_dir = '/Users/yangjuehan/parse mmf/N-MFP2_csv2/', filename = 'xmlpath.csv'):
+def generate_index(data_dir = '/Users/yangjuehan/parse mmf/N-MFP2/', pathfile  = 'xmlpath.csv'):
     
     # general a file containing xml paths for the N-MFP2 form 
     
     print(color.BOLD + color.RED + 'Building the index file for N-MFP2 form...' + color.END + '\n')
     count = 0
     edgar_root = "https://www.sec.gov/Archives/edgar/data/"
-    with open(data_dir + filename, 'w', newline='') as log:
+    with open(data_dir + pathfile, 'w', newline='') as log:
         logwriter = csv.writer(log)
-        with open('N_MFP2.csv', newline='') as infile:
+        with open(data_dir + 'N_MFP2.csv', newline='') as infile:
             records = csv.reader(infile) 
             log_row = ['conm', 'form_type', 'cik', 'cik2', 'accession_num', 'xmlpath']
 
@@ -63,7 +63,7 @@ def generate_index(data_dir = '/Users/yangjuehan/parse mmf/N-MFP2_csv2/', filena
                     print(color.BLUE + 'Finished ' + str(count) + ' records...' + color.END) 
     print('\n')
 
-def crawl(data_dir = '/Users/yangjuehan/parse mmf/N-MFP2_csv2/', pathfile = 'xmlpath.csv'):
+def crawl(data_dir = '/Users/yangjuehan/parse mmf/N-MFP2/', pathfile = 'xmlpath.csv'):
     
     edgar_root = "https://www.sec.gov/Archives/edgar/data/"
 
@@ -124,7 +124,7 @@ def crawl(data_dir = '/Users/yangjuehan/parse mmf/N-MFP2_csv2/', pathfile = 'xml
 
                 
                 
-def clean(data_dir = '/Users/yangjuehan/parse mmf/N-MFP2_csv2/', pathfile = 'xmlpath.csv'):
+def clean(data_dir = '/Users/yangjuehan/parse mmf/N-MFP2/', pathfile = 'xmlpath.csv'):
     
     # set up paths
     allpaths = pd.read_csv(data_dir + pathfile, dtype = str)
@@ -529,7 +529,7 @@ def parse_port(filepath):
     return mmf
   
     
-def make_port(data_dir = '/Users/yangjuehan/parse mmf/N-MFP2_csv2/',pathfile = 'xmlpath.csv'):
+def make_port(data_dir = '/Users/yangjuehan/parse mmf/N-MFP2/',pathfile = 'xmlpath.csv'):
     
     # set up paths
     allpaths = pd.read_csv(data_dir + pathfile, dtype = str)
