@@ -2,7 +2,7 @@
 
 Author: Yangjue Han, New York University
 
-1. Run **edgar_index.py** to download the index file from EDGAR and generate **edgar_htm_idx.dta**
+1. Run **edgar_index.py** to download the index file from EDGAR and generate **edgar_htm_idx.dta** (users can save the index information to other file types and skip STATA)
 2. Open **edgar_htm_idx.dta**, `keep if type == "N-MFP" | "N-MFP2"`, save to **NMFP_all_idx.dta**
 3. Export csv files containing un-modified path information of N-MFP and N-MFP2 to **NMFP_idx.csv** and **NMFP2_idx.csv**
 4. Run **NMFP2.py** to scrape and clean data:
