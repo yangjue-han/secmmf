@@ -1,4 +1,4 @@
-`mmf` enables the user to download SEC's NMFP2 reporting files from the EDGAR database. The final output of this package is a csv file that contains fund-level and security-level information of all U.S. money market funds from 2016-10 to 2019-7.
+`sec-nmfp2` enables the user to download SEC's NMFP2 reporting files from the EDGAR database. The final output of this package is a csv file that contains fund-level and security-level information of all U.S. money market funds from 2016-10 to 2019-7.
 
 Author: Yangjue Han, New York University
 
