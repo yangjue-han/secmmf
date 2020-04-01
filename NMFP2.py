@@ -40,7 +40,7 @@ def generate_index(data_dir, pathfile):
 
     # general a file containing xml paths for the N-MFP2 form
 
-    print(color.BOLD + color.RED + 'Building the index file for N-MFP2 form...' + color.END + '\n')
+    print(color.BOLD + color.RED + 'Building the XML path file.' + color.END + '\n')
     count = 0
     edgar_root = "https://www.sec.gov/Archives/edgar/data/"
     with open(data_dir + pathfile, 'w', newline='') as log:
@@ -63,7 +63,7 @@ def generate_index(data_dir, pathfile):
                     print(color.BLUE + 'Finished ' + str(count) + ' records...' + color.END)
     print('\n')
 
-def scrape(data_dir , pathfile):
+def scrape(data_dir, pathfile, N_blocks=20, start_block=1, end_block=20):
 
     edgar_root = "https://www.sec.gov/Archives/edgar/data/"
 
@@ -73,14 +73,13 @@ def scrape(data_dir , pathfile):
     xmlpaths = [edgar_root + x[0] + '/' + x[1] + '/primary_doc.xml' for x in zip(cik,acc)]
 
     N = len(xmlpaths)
-    N_blocks = 20
     block_len = int(N/N_blocks)
     res_len = N%block_len
 
     mmf_parser = N_MFP() # initialize XML parser
 
     print(color.BOLD + color.RED + color.UNDERLINE + 'scraping filing data from SEC website ... ' + color.END)
-    for i in range(N_blocks):
+    for i in range(start_block-1,end_block):
 
         # prepares a block of xml paths
         if i < (N_blocks-1):
@@ -117,6 +116,7 @@ def scrape(data_dir , pathfile):
                 multiple_remain = (block_len-n)/n
                 mins_elapse = (stop-start)/60
 
+                _ = os.system('clear')
                 print('Block: {}'.format(i+1))
                 print('{:.2f}% finished'.format(perc_run*100))
                 print('Current run time: {:.1f} minutes.'.format(mins_elapse))
@@ -124,16 +124,15 @@ def scrape(data_dir , pathfile):
 
 
 
-def clean(data_dir, pathfile):
+def clean(data_dir, pathfile, N_blocks=20):
 
     # set up paths
     allpaths = pd.read_csv(data_dir + pathfile, dtype = str)
-    cik = [x for x in list(allpaths['cik2'].values)]
+    cik = [x for x in list(allpaths['cik'].values)]
     acc = [x for x in list(allpaths['accession_num'].values)]
     xmlpaths = [x[0]+'_'+x[1]+'.csv' for x in zip(cik,acc)]
 
     N = len(xmlpaths)
-    N_blocks = 20
     block_len = int(N/N_blocks)
     res_len = N%block_len
 
@@ -533,7 +532,7 @@ def make_port(data_dir, pathfile):
 
     # set up paths
     allpaths = pd.read_csv(data_dir + pathfile, dtype = str)
-    cik = [x for x in list(allpaths['cik2'].values)]
+    cik = [x for x in list(allpaths['cik'].values)]
     acc = [x for x in list(allpaths['accession_num'].values)]
     xmlpaths = [x[0]+'_'+x[1]+'.csv' for x in zip(cik,acc)]
 
