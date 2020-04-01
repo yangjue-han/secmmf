@@ -10,7 +10,7 @@ import datetime
 from IPython.display import clear_output
 from selenium import webdriver
 from webdriver_manager.chrome import ChromeDriverManager
-from sec_crawling import N_MFP
+from sec_scraper import N_MFP
 
 class color:
    PURPLE = '\033[95m'
@@ -33,81 +33,81 @@ class DictList(dict):
         except KeyError: # If it fails, because there is no key
             super(DictList, self).__setitem__(key, value)
         except AttributeError: # If it fails because it is not a list
-            super(DictList, self).__setitem__(key, [self[key], value])    
+            super(DictList, self).__setitem__(key, [self[key], value])
 
 
-def generate_index(data_dir = '/Users/yangjuehan/parse mmf/N-MFP2/', pathfile  = 'xmlpath.csv'):
-    
-    # general a file containing xml paths for the N-MFP2 form 
-    
+def generate_index(data_dir, pathfile):
+
+    # general a file containing xml paths for the N-MFP2 form
+
     print(color.BOLD + color.RED + 'Building the index file for N-MFP2 form...' + color.END + '\n')
     count = 0
     edgar_root = "https://www.sec.gov/Archives/edgar/data/"
     with open(data_dir + pathfile, 'w', newline='') as log:
         logwriter = csv.writer(log)
-        with open(data_dir + 'N_MFP2.csv', newline='') as infile:
-            records = csv.reader(infile) 
-            log_row = ['conm', 'form_type', 'cik', 'cik2', 'accession_num', 'xmlpath']
+        with open(data_dir + 'NMFP2_idx.csv', newline='') as infile:
+            records = csv.reader(infile)
+            log_row = ['conm', 'type', 'cik', 'accession_num', 'path']
 
             for r in records:
-                if count > 0 & count < 100:
-                    file_dir = r[5].replace(edgar_root, '')
-                    cik, res = file_dir.split('/')
+                if count > 0:
+                    xml_url = r[4].replace(edgar_root, '')
+                    cik, res = xml_url.split('/')
                     accession_num = ''.join(res.split('-')[:3])
-                    xmlpath = edgar_root + cik + '/' + accession_num + '/primary_doc.xml' 
-                    log_row = r[1:4] + [cik,accession_num,xmlpath]
+                    xmlpath = edgar_root + cik + '/' + accession_num + '/primary_doc.xml'
+                    log_row = r[:2] + [cik,accession_num,xmlpath]
 
                 logwriter.writerow(log_row)
                 count += 1
                 if count%1000 == 0:
-                    print(color.BLUE + 'Finished ' + str(count) + ' records...' + color.END) 
+                    print(color.BLUE + 'Finished ' + str(count) + ' records...' + color.END)
     print('\n')
 
-def crawl(data_dir = '/Users/yangjuehan/parse mmf/N-MFP2/', pathfile = 'xmlpath.csv'):
-    
+def scrape(data_dir , pathfile):
+
     edgar_root = "https://www.sec.gov/Archives/edgar/data/"
 
     allpaths = pd.read_csv(data_dir + pathfile, dtype = str)
-    cik = [x for x in list(allpaths['cik2'].values)]
+    cik = [x for x in list(allpaths['cik'].values)]
     acc = [x for x in list(allpaths['accession_num'].values)]
     xmlpaths = [edgar_root + x[0] + '/' + x[1] + '/primary_doc.xml' for x in zip(cik,acc)]
-    
+
     N = len(xmlpaths)
     N_blocks = 20
     block_len = int(N/N_blocks)
     res_len = N%block_len
-    
+
     mmf_parser = N_MFP() # initialize XML parser
-    
-    print(color.BOLD + color.RED + color.UNDERLINE + 'Crawling filing data from SEC website ... ' + color.END)
+
+    print(color.BOLD + color.RED + color.UNDERLINE + 'scraping filing data from SEC website ... ' + color.END)
     for i in range(N_blocks):
-        
+
         # prepares a block of xml paths
         if i < (N_blocks-1):
             block_paths = xmlpaths[i*block_len:(i+1)*block_len]
         else:
             block_paths = xmlpaths[i*block_len:]
-        
+
         # set up timer
         start = timeit.default_timer()
         n = 0
-        
+
         # make a data directory
         blockpath = data_dir + 'block_{}/'.format(i+1)
         os.mkdir(blockpath)
-        
-        # crawling loop
+
+        # scraping loop
         for f in block_paths:
             data = mmf_parser.parse_csv(f)
             cik_acc = f.split('/')[-3:-1]
-            
+
             with open(blockpath + cik_acc[0] + '_' + cik_acc[1] + '.csv' , 'w', newline='') as log:
                 logwriter = csv.writer(log)
                 for item in data:
                     keys = [x.strip().replace('\n','') for x in item.split(':')[0].split('_')]
                     value = item.split(':')[1].strip().replace('\n','')
                     logwriter.writerow(keys[1:] + [value])
-            
+
             # progress tracker
             n += 1
             if n%10 == 0:
@@ -122,84 +122,84 @@ def crawl(data_dir = '/Users/yangjuehan/parse mmf/N-MFP2/', pathfile = 'xmlpath.
                 print('Current run time: {:.1f} minutes.'.format(mins_elapse))
                 print('Expected remaining run time: {:.1f} minutes'.format(mins_elapse*multiple_remain))
 
-                
-                
-def clean(data_dir = '/Users/yangjuehan/parse mmf/N-MFP2/', pathfile = 'xmlpath.csv'):
-    
+
+
+def clean(data_dir, pathfile):
+
     # set up paths
     allpaths = pd.read_csv(data_dir + pathfile, dtype = str)
     cik = [x for x in list(allpaths['cik2'].values)]
     acc = [x for x in list(allpaths['accession_num'].values)]
     xmlpaths = [x[0]+'_'+x[1]+'.csv' for x in zip(cik,acc)]
-    
+
     N = len(xmlpaths)
     N_blocks = 20
     block_len = int(N/N_blocks)
     res_len = N%block_len
-    
+
     # set up special names
     outliers = [ 'classLevelInfo_fridayWeek{}_weeklyGrossSubscriptions'.format(i) for i in range(1,6)]
     outliers.extend(['classLevelInfo_fridayWeek{}_weeklyGrossRedemptions'.format(i) for i in range(1,6)])
     outliers.extend(['classLevelInfo_totalForTheMonthReported_weeklyGrossSubscriptions',
                     'classLevelInfo_totalForTheMonthReported_weeklyGrossRedemptions'])
 
-    stubs = ['totalValueDailyLiquidAssets', 
-         'percentageDailyLiquidAssets', 
-         'totalValueWeeklyLiquidAssets', 
-         'percentageWeeklyLiquidAssets', 
-         'netAssetValue', 
-         'netAssetPerShare', 
-         'weeklyGrossRedemptions', 
+    stubs = ['totalValueDailyLiquidAssets',
+         'percentageDailyLiquidAssets',
+         'totalValueWeeklyLiquidAssets',
+         'percentageWeeklyLiquidAssets',
+         'netAssetValue',
+         'netAssetPerShare',
+         'weeklyGrossRedemptions',
          'weeklyGrossSubscriptions']
 
-    series_stubs = ['totalValueDailyLiquidAssets', 
-             'percentageDailyLiquidAssets', 
-             'totalValueWeeklyLiquidAssets', 
+    series_stubs = ['totalValueDailyLiquidAssets',
+             'percentageDailyLiquidAssets',
+             'totalValueWeeklyLiquidAssets',
              'percentageWeeklyLiquidAssets',
              'netAssetValue']
 
-    class_stubs = ['netAssetPerShare', 
-             'weeklyGrossRedemptions', 
+    class_stubs = ['netAssetPerShare',
+             'weeklyGrossRedemptions',
              'weeklyGrossSubscriptions']
 
     stubs_long = ['seriesLevelInfo_'+ x for x in series_stubs] + ['classLevelInfo_'+ x for x in class_stubs]
-    
+
     _stubs = [x+'_fridayWeek{}'.format(i) for x in stubs for i in range(1,6)]
-    
-    fundflow = ['classLevelInfo_weeklyGrossSubscriptions/fridayWeek5', 
+
+    fundflow = ['classLevelInfo_weeklyGrossSubscriptions/fridayWeek5',
                 'classLevelInfo_weeklyGrossRedemptions/fridayWeek5']
-    
+
     print(color.BOLD + color.RED + color.UNDERLINE + 'Combining fund-level data file into a single one ... ' + color.END)
-    
+
     N_error = 0
     N_processed = 0
-    
+
     for i in range(N_blocks):
         if i < (N_blocks-1):
             block_paths = xmlpaths[i*block_len:(i+1)*block_len]
         else:
             block_paths = xmlpaths[i*block_len:]
-        
+
         blockpath = data_dir + 'block_{}/'.format(i+1)
         data_path = data_dir + 'NMFP2_data_' + str(i+1) + '.csv'
 
         # set up progress tracker
         start = timeit.default_timer()
         n = 0
-        
+
         # initialize buffer
         data = pd.DataFrame()
-        
+
         for f in block_paths:
             n += 1
             gsc = DictList()
             port = DictList()
             '''
             Data converting block...
-            
+
             '''
             if os.path.exists(blockpath+f):
-                
+
                 with open(blockpath+f, 'r', newline='') as infile:
                     print(blockpath+f)
                     records = csv.reader(infile)
@@ -216,7 +216,7 @@ def clean(data_dir = '/Users/yangjuehan/parse mmf/N-MFP2/', pathfile = 'xmlpath.
 
                             if key[1] == 'classesId':
                                 count += 1
-                            
+
                             if key[1] == 'totalShareClassesInSeries':
                                 N_class = int(val)
 
@@ -229,19 +229,19 @@ def clean(data_dir = '/Users/yangjuehan/parse mmf/N-MFP2/', pathfile = 'xmlpath.
 
                                 if '_'.join(key) == 'classLevelInfo_personPayForFundFlag':
                                     if val == 'N':
-                                        gsc['classLevelInfo_nameOfPersonDescExpensePay'] = 'N/A' 
+                                        gsc['classLevelInfo_nameOfPersonDescExpensePay'] = 'N/A'
                             else:
-                                if '_'.join(key) in ['classLevelInfo_weeklyGrossSubscriptions_fridayWeek5', 
+                                if '_'.join(key) in ['classLevelInfo_weeklyGrossSubscriptions_fridayWeek5',
                                                     'classLevelInfo_weeklyGrossRedemptions_fridayWeek5']:
                                     val = val + '_{}'.format(count)
-                                gsc['_'.join(key[:-1])+'/'+key[-1]] = val 
+                                gsc['_'.join(key[:-1])+'/'+key[-1]] = val
 
-                
+
                 new_gsc = DictList()
 
                 error_names = ['seriesLevelInfo_adviser_adviserName',
                              'seriesLevelInfo_adviser_adviserFileNumber',
-                             'seriesLevelInfo_subAdviser_adviserName', 
+                             'seriesLevelInfo_subAdviser_adviserName',
                              'seriesLevelInfo_subAdviser_adviserFileNumber',
                              'seriesLevelInfo_administrator_administratorName',
                              'seriesLevelInfo_securitiesActFileNumber',
@@ -265,33 +265,33 @@ def clean(data_dir = '/Users/yangjuehan/parse mmf/N-MFP2/', pathfile = 'xmlpath.
                              'seriesLevelInfo_masterFund_fileNumber',
                              'seriesLevelInfo_masterFund_seriesId']
 
-                # some identification items might have multiple entries, combine them 
+                # some identification items might have multiple entries, combine them
                 for name in error_names:
                     try:
                         new_gsc[name] = ''.join(gsc[name])
                     except:
                         # if no such item, then pass
                         pass
-                    
+
                 # assign values to those items with no bugs
                 for key in gsc:
                     if (key not in error_names) & (key not in fundflow):
-                        new_gsc[key] = gsc[key]        
-                
-                # calculate the depth upon a pre-mature dictionary         
+                        new_gsc[key] = gsc[key]
+
+                # calculate the depth upon a pre-mature dictionary
                 if True:
                     num_val = []
-                    for key in new_gsc:        
+                    for key in new_gsc:
                         # a sub task that calculates the number of classes
                         if type(new_gsc[key]) == str:
                             num_val.append(1)
                         else:
                             num_val.append(len(new_gsc[key]))
-                    N_class = max(num_val)        
-               
+                    N_class = max(num_val)
+
                 # sometimes even if one class enters week5 data, another might not
                 for item in fundflow:
-                    try: 
+                    try:
                         week5val = gsc[item]
                     except:
                         pass
@@ -304,32 +304,32 @@ def clean(data_dir = '/Users/yangjuehan/parse mmf/N-MFP2/', pathfile = 'xmlpath.
                             for x in gsc[item]:
                                 pos.append(int(x.split('_')[1]))
                                 vals.append(x.split('_')[0])
-                            
+
                             newval = [np.nan for x in range(N_class)]
-                            
+
                             for x in zip(pos,vals):
                                 newval[x[0]-1] = x[1]
                         new_gsc[item] = newval
-                
-                
+
+
                 try:
                     N_processed += 1
                     df = pd.DataFrame(new_gsc, index = range(N_class))
 
-                except Exception as e: 
+                except Exception as e:
                     N_error += 1
                     print('Error: ' + color.RED + e.args[0] + color.END)
-                    
+
                 else:
                     try:
-                        df2 = pd.wide_to_long(df, stubnames = stubs_long, 
-                                          i = ['classLevelInfo_classesId'], 
+                        df2 = pd.wide_to_long(df, stubnames = stubs_long,
+                                          i = ['classLevelInfo_classesId'],
                                           j = 'week', sep = '/', suffix = '\w+')
                     except Exception as e:
                         print('Error: ' + color.RED + e.args[0] + color.END)
                         pass
                     else:
-                        df2.columns = [x.replace('generalInfo_','').replace('LevelInfo','').replace('series_','') 
+                        df2.columns = [x.replace('generalInfo_','').replace('LevelInfo','').replace('series_','')
                                        for x in df2.columns]
                         df2.index.set_names(['classID','week'], inplace = True)
                         df2.reset_index(inplace = True)
@@ -346,7 +346,7 @@ def clean(data_dir = '/Users/yangjuehan/parse mmf/N-MFP2/', pathfile = 'xmlpath.
                         data = data.append(df2, ignore_index = True, sort = False)
             else:
                 print('File: ' + blockpath + f + ' does not exist!')
-           
+
             # progress tracker
             if n%100 == 0:
                 #clear_output(wait = True)
@@ -361,7 +361,7 @@ def clean(data_dir = '/Users/yangjuehan/parse mmf/N-MFP2/', pathfile = 'xmlpath.
                 print('Current error rate: {:.2f}%'.format(error_rate))
                 print('Current run time: {:.1f} minutes.'.format(mins_elapse))
                 print('Expected remaining run time: {:.1f} minutes \n'.format(mins_elapse*multiple_remain))
-            
+
         data.to_csv(data_path)
 
 def parse_port(filepath):
@@ -376,7 +376,7 @@ def parse_port(filepath):
         records = csv.reader(infile)
         for r in records:
             repo_n += 1
-            
+
             if r[:-1] == ['signature','registrant']:
                 seclist.append(sec)
 
@@ -394,7 +394,7 @@ def parse_port(filepath):
 
                 # append rating info
                 try:
-                    text = [ x[0]+': '+x[1] 
+                    text = [ x[0]+': '+x[1]
                             for x in zip(sec_rating['ratingAgency'],sec_rating['ratingScore'])]
                     sec['NRSRO'] = '/'.join(text)
                 except:
@@ -452,7 +452,7 @@ def parse_port(filepath):
 
                 # repo info
                 elif r[1] == 'repurchaseAgreement':
-                    
+
                     if r[2] == 'repurchaseAgreementOpenFlag':
                         sec['repo_OpenFlag'] = r[-1]
                         has_repo = True
@@ -477,7 +477,7 @@ def parse_port(filepath):
                     elif '_'.join(r[2:-1]) == 'collateralIssuers_maturityDate_date':
                         memo['repo_Collateral_MaturityDate'] = datetime.datetime.strptime(r[-1], '%Y-%m-%d')
                     elif '_'.join(r[2:-1]) == 'collateralIssuers_couponOrYield':
-                        memo['repo_Collateral_CouponOrYield'] = r[-1] 
+                        memo['repo_Collateral_CouponOrYield'] = r[-1]
                     elif '_'.join(r[2:-1]) == 'collateralIssuers_principalAmountToTheNearestCent':
                         memo['repo_Collateral_PrincipalAmount'] = r[-1]
                     elif '_'.join(r[2:-1]) == 'collateralIssuers_valueOfCollateralToTheNearestCent':
@@ -488,14 +488,14 @@ def parse_port(filepath):
     mmf = pd.DataFrame()
     for item in seclist[1:]:
         max_N = 1
-        for k,v in item.items():       
+        for k,v in item.items():
             if type(v) == list:
                 max_N = max(1,len(v))
 
         for k,v in item.items():
             if type(v) != list:
                 for i in range(max_N-1):
-                    item[k] = v 
+                    item[k] = v
         try:
             df = pd.DataFrame(item, index = range(max_N))
         except Exception as e:
@@ -525,44 +525,44 @@ def parse_port(filepath):
             mmf[x] = mmf[x].apply(lambda x: datetime.datetime.strptime(x, '%Y-%m-%d'))
         except:
             pass
-    
+
     return mmf
-  
-    
-def make_port(data_dir = '/Users/yangjuehan/parse mmf/N-MFP2/',pathfile = 'xmlpath.csv'):
-    
+
+
+def make_port(data_dir, pathfile):
+
     # set up paths
     allpaths = pd.read_csv(data_dir + pathfile, dtype = str)
     cik = [x for x in list(allpaths['cik2'].values)]
     acc = [x for x in list(allpaths['accession_num'].values)]
     xmlpaths = [x[0]+'_'+x[1]+'.csv' for x in zip(cik,acc)]
-    
+
     N = len(xmlpaths)
     N_blocks = 20
     block_len = int(N/N_blocks)
     res_len = N%block_len
-    
+
     print(color.BOLD + color.RED + color.UNDERLINE + 'Combining fund-level portfolio data into a single one ... ' + color.END)
-    
+
     N_error = 0
     N_processed = 0
-    
+
     for i in range(N_blocks):
         if i < (N_blocks-1):
             block_paths = xmlpaths[i*block_len:(i+1)*block_len]
         else:
             block_paths = xmlpaths[i*block_len:]
-        
+
         blockpath = data_dir + 'block_{}/'.format(i+1)
         data_path = data_dir + 'NMFP2_port_' + str(i+1) + '.csv'
 
         # set up progress tracker
         start = timeit.default_timer()
         n = 0
-        
+
         # initialize buffer
         data = pd.DataFrame()
-        
+
         for f in block_paths:
             n += 1
             N_processed += 1
@@ -574,12 +574,12 @@ def make_port(data_dir = '/Users/yangjuehan/parse mmf/N-MFP2/',pathfile = 'xmlpa
                 except Exception as e:
                     exc_type, exc_obj, exc_tb = sys.exc_info()
                     print(color.BLUE + str(exc_tb.tb_lineno) + color.END + ' --> ' + color.RED + e.args[0] + color.END)
-                    
-                    N_error +=1 
+
+                    N_error +=1
                     pass
             else:
                 print('File: ' + blockpath + f + ' does not exist!')
-           
+
             # progress tracker
             if n%100 == 0:
                 #clear_output(wait = True)
@@ -588,12 +588,11 @@ def make_port(data_dir = '/Users/yangjuehan/parse mmf/N-MFP2/',pathfile = 'xmlpa
                 multiple_remain = (block_len-n)/n
                 mins_elapse = (stop-start)/60
                 error_rate = N_error/N_processed * 100
-                
+
                 print('Block: {}'.format(i+1))
                 print('{:.2f}% finished'.format(perc_run*100))
                 print('Current error rate: {:.2f}%'.format(error_rate))
                 print('Current run time: {:.1f} minutes.'.format(mins_elapse))
                 print('Expected remaining run time: {:.1f} minutes \n'.format(mins_elapse*multiple_remain))
-            
+
         data.to_csv(data_path)
-        
