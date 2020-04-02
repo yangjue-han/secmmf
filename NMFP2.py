@@ -124,7 +124,7 @@ def scrape(data_dir, pathfile, N_blocks=20, start_block=1, end_block=20):
 
 
 
-def clean(data_dir, pathfile, N_blocks=20):
+def gen_table_fund(data_dir, pathfile, N_blocks=20):
 
     # set up paths
     allpaths = pd.read_csv(data_dir + pathfile, dtype = str)
@@ -363,17 +363,6 @@ def clean(data_dir, pathfile, N_blocks=20):
 
         data.to_csv(data_path)
 
-def make_fund(data_dir,N_blocks=20):
-    os.chdir(data_dir)
-    df = pd.read_csv('NMFP2_data_1.csv')
-    for i in range(1,N_blocks):
-        df = df.append(
-            pd.read_csv('NMFP2_data_{}.csv'.format(i+1)),
-            ignore_index=True,
-            sort=False
-        )
-    df.drop(columns='Unnamed: 0').to_csv('NMFP2_fund.csv')
-
 def parse_port(filepath):
     seclist = []
     general = DictList()
@@ -539,7 +528,7 @@ def parse_port(filepath):
     return mmf
 
 
-def make_port(data_dir, pathfile):
+def gen_table_holdings(data_dir, pathfile):
 
     # set up paths
     allpaths = pd.read_csv(data_dir + pathfile, dtype = str)
@@ -606,3 +595,50 @@ def make_port(data_dir, pathfile):
                 print('Expected remaining run time: {:.1f} minutes \n'.format(mins_elapse*multiple_remain))
 
         data.to_csv(data_path)
+
+
+def combine_fund(data_dir,N_blocks=20):
+    os.chdir(data_dir)
+    df = pd.read_csv('NMFP2_data_1.csv')
+    for i in range(1,N_blocks):
+        df = df.append(
+            pd.read_csv('NMFP2_data_{}.csv'.format(i+1)),
+            ignore_index=True,
+            sort=False
+        )
+    df.drop(columns='Unnamed: 0').to_csv('NMFP2_fund.csv')
+
+def combine_port(data_dir,N_blocks=20):
+    os.chdir(data_dir)
+    df = pd.read_csv('NMFP2_port_1.csv',low_memory=False)
+    for i in range(1,N_blocks):
+        df = df.append(
+            pd.read_csv('NMFP2_port_{}.csv'.format(i+1),low_memory=False),
+            ignore_index=True,
+            sort=False
+        )
+    df.drop(columns='Unnamed: 0').to_csv('NMFP2_port.csv')
+
+def wrap(data_dir, N_blocks=20):
+
+    try:
+        os.makedirs(data_dir+'fund-level/')
+    except:
+        if os.path.exists('NMFP2_fund.csv') == False:
+            combine_fund(data_dir,N_blocks)
+        else:
+            for i in range(N_blocks):
+                filepath = 'NMFP2_data_{}.csv'.format(i+1)
+                if os.path.exists(filepath):
+                    shutil.move(filepath, data_dir+'fund-level/')
+
+    try:
+        os.makedirs(data_dir+'holdings-level/')
+    except:
+        if os.path.exists('NMFP2_port.csv') == False:
+            combine_port(data_dir,N_blocks)
+        else:
+            for i in range(N_blocks):
+                filepath = 'NMFP2_port_{}.csv'.format(i+1)
+                if os.path.exists(filepath):
+                    shutil.move(filepath, data_dir+'holdings-level/')
