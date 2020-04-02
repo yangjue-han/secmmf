@@ -363,6 +363,17 @@ def clean(data_dir, pathfile, N_blocks=20):
 
         data.to_csv(data_path)
 
+def make_fund(data_dir,N_blocks=20):
+    os.chdir(data_dir)
+    df = pd.read_csv('NMFP2_data_1.csv')
+    for i in range(1,N_blocks):
+        df = df.append(
+            pd.read_csv('NMFP2_data_{}.csv'.format(i+1)),
+            ignore_index=True,
+            sort=False
+        )
+    df.drop(columns='Unnamed: 0').to_csv('NMFP2_fund.csv')
+
 def parse_port(filepath):
     seclist = []
     general = DictList()

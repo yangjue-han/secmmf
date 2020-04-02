@@ -64,7 +64,7 @@ os.remove('edgar_htm_idx.csv')
 
 
 # =========================================================================
-# Step 2: Scraping data
+# Step 2: Prepare URLs for scraping
 # =========================================================================
 
 data_dir = "/Users/yangjuehan/Local Data/mmf_updated_202003/raw_data/"
@@ -85,8 +85,32 @@ idx['selector'] = pd.to_datetime(idx['date'],format='%Y-%m-%d')
 idx=idx[idx['selector']>'2019-7']
 idx.drop(columns='selector').to_csv('NMFP2_idx.csv',index=False)
 
+# =========================================================================
+# Step 3: Scraping data
+# =========================================================================
+
 # generate urls using generate_index(data_dir,pathfile)
 generate_index(data_dir,pathfile)
 
 # scrape data
 scrape(data_dir,pathfile)
+
+# clean data
+clean(data_dir,pathfile)
+
+# make fund-level tables
+def make_fund(data_dir,N_blocks=20):
+    os.chdir(data_dir)
+    df = pd.read_csv('NMFP2_data_1.csv')
+    for i in range(1,N_blocks):
+        df = df.append(
+            pd.read_csv('NMFP2_data_{}.csv'.format(i+1)),
+            ignore_index=True,
+            sort=False
+        )
+    df.drop(columns='Unnamed: 0').to_csv('NMFP2_fund.csv')
+
+make_fund(data_dir)
+
+# make portfolio tables
+make_port(data_dir, pathfile)
