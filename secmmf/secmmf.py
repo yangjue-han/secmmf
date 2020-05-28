@@ -7,10 +7,15 @@ import numpy as np
 import timeit
 import datetime
 
-from IPython.display import clear_output
+from sqlalchemy import create_engine
+import sqlite3
+import requests
+import shutil
 from selenium import webdriver
 from webdriver_manager.chrome import ChromeDriverManager
-from parser import N_MFP2
+from IPython.display import clear_output
+
+from secmmf.parser import N_MFP2
 
 class color:
    PURPLE = '\033[95m'
@@ -44,9 +49,14 @@ def download_sec_index(data_dir, form_name, start_date=None, end_date=None):
     except:
         os.chdir(data_dir)
 
+    if start_date == None:
+        start_year = 2016
+    else:
+        start_year = int(start_date[:4])
+        
     current_year = datetime.date.today().year
     current_quarter = (datetime.date.today().month - 1) // 3 + 1
-    years = list(range(2016, current_year))
+    years = list(range(start_year, current_year))
     quarters = ['QTR1', 'QTR2', 'QTR3', 'QTR4']
     history = [(y, q) for y in years for q in quarters]
     for i in range(1, current_quarter + 1):
@@ -80,11 +90,11 @@ def download_sec_index(data_dir, form_name, start_date=None, end_date=None):
     # Write SQLite database to a csv file
     engine = create_engine('sqlite:///edgar_htm_idx.db')
     with engine.connect() as conn, conn.begin():
-        data = pandas.read_sql_table('idx', conn)
+        data = pd.read_sql_table('idx', conn)
         data.to_csv('edgar_htm_idx.csv')
 
     # Load index information
-    edgar_idx = pandas.read_csv('edgar_htm_idx.csv')
+    edgar_idx = pd.read_csv('edgar_htm_idx.csv')
     edgar_idx = edgar_idx[['conm','type','cik','date','path']]
 
     nmfp2 = edgar_idx[edgar_idx['type']==form_name].copy()
