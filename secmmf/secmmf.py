@@ -53,7 +53,7 @@ def download_sec_index(data_dir, form_name, start_date=None, end_date=None):
         start_year = 2016
     else:
         start_year = int(start_date[:4])
-        
+
     current_year = datetime.date.today().year
     current_quarter = (datetime.date.today().month - 1) // 3 + 1
     years = list(range(start_year, current_year))
@@ -131,7 +131,7 @@ def generate_index(data_dir, pathfile):
     edgar_root = "https://www.sec.gov/Archives/edgar/data/"
     with open(data_dir + pathfile, 'w', newline='') as log:
         logwriter = csv.writer(log)
-        with open(data_dir + 'index_file.csv', newline='') as infile:
+        with open(os.path.join(data_dir,'index_file.csv'), newline='') as infile:
             records = csv.reader(infile)
             log_row = ['conm', 'type', 'cik', 'accession_num', 'path']
 
@@ -154,7 +154,7 @@ def scrape(data_dir, pathfile, N_blocks=20, start_block=1, end_block=20):
 
     edgar_root = "https://www.sec.gov/Archives/edgar/data/"
 
-    allpaths = pd.read_csv(data_dir + pathfile, dtype = str)
+    allpaths = pd.read_csv(os.path.join(data_dir,pathfile), dtype = str)
     cik = [x for x in list(allpaths['cik'].values)]
     acc = [x for x in list(allpaths['accession_num'].values)]
     xmlpaths = [edgar_root + x[0] + '/' + x[1] + '/primary_doc.xml' for x in zip(cik,acc)]
@@ -179,7 +179,7 @@ def scrape(data_dir, pathfile, N_blocks=20, start_block=1, end_block=20):
         n = 0
 
         # make a data directory
-        blockpath = data_dir + 'block_{}/'.format(i+1)
+        blockpath = os.path.join(data_dir,'block_{}/'.format(i+1))
         os.mkdir(blockpath)
 
         # scraping loop
@@ -213,7 +213,7 @@ def scrape(data_dir, pathfile, N_blocks=20, start_block=1, end_block=20):
 def gen_table_fund(data_dir, pathfile, N_blocks=20):
 
     # set up paths
-    allpaths = pd.read_csv(data_dir + pathfile, dtype = str)
+    allpaths = pd.read_csv(os.path.join(data_dir,pathfile), dtype = str)
     cik = [x for x in list(allpaths['cik'].values)]
     acc = [x for x in list(allpaths['accession_num'].values)]
     xmlpaths = [x[0]+'_'+x[1]+'.csv' for x in zip(cik,acc)]
@@ -265,8 +265,8 @@ def gen_table_fund(data_dir, pathfile, N_blocks=20):
         else:
             block_paths = xmlpaths[i*block_len:]
 
-        blockpath = data_dir + 'block_{}/'.format(i+1)
-        data_path = data_dir + 'NMFP2_data_' + str(i+1) + '.csv'
+        blockpath = os.path.join(data_dir,'block_{}/'.format(i+1))
+        data_path = os.path.join(data_dir,'NMFP2_data_' + str(i+1) + '.csv')
 
         # set up progress tracker
         start = timeit.default_timer()
@@ -618,7 +618,7 @@ def parse_port(filepath):
 def gen_table_holdings(data_dir, pathfile):
 
     # set up paths
-    allpaths = pd.read_csv(data_dir + pathfile, dtype = str)
+    allpaths = pd.read_csv(os.path.join(data_dir,pathfile), dtype = str)
     cik = [x for x in list(allpaths['cik'].values)]
     acc = [x for x in list(allpaths['accession_num'].values)]
     xmlpaths = [x[0]+'_'+x[1]+'.csv' for x in zip(cik,acc)]
@@ -639,8 +639,8 @@ def gen_table_holdings(data_dir, pathfile):
         else:
             block_paths = xmlpaths[i*block_len:]
 
-        blockpath = data_dir + 'block_{}/'.format(i+1)
-        data_path = data_dir + 'NMFP2_port_' + str(i+1) + '.csv'
+        blockpath = os.path.join(data_dir,'block_{}/'.format(i+1))
+        data_path = os.path.join(data_dir,'NMFP2_port_' + str(i+1) + '.csv')
 
         # set up progress tracker
         start = timeit.default_timer()
