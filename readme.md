@@ -1,7 +1,5 @@
-`sec-nmfp2` enables the user to download SEC's NMFP2 reporting files from the EDGAR database. The final output of this package is a csv file that contains fund-level and security-level information of all U.S. money market funds.
+# SEC N-MFP2 Money Market Fund Holdings Data
 
-Author: Yangjue Han, Department of Economics, New York University
+## Introduction
+This repository contains code that enables the user to parse and download money market fund holdings information in N-MFP2 filings from SEC EDGAR system. 
 
-First version: 2019.8 (Updated: 2020.4)
-
-Please see `main.py` for user guide. 
