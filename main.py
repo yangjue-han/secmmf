@@ -67,7 +67,7 @@ os.remove('edgar_htm_idx.csv')
 # Step 2: Prepare URLs for scraping
 # =========================================================================
 
-data_dir = "/Users/yangjuehan/Local Data/mmf_updated_202003/raw_data/"
+data_dir = "/Users/yangjuehan/Local Data/mmf/raw_data" ##TYPE YOUR OWN DIRECTORY TO STORE DATA, ESTIMATED DISK USAGE 3GB/YR##
 try:
     os.makedirs(data_dir)
 except:

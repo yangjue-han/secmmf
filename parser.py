@@ -4,8 +4,7 @@ import untangle as ut
 import urllib.request as rq
 from collections import OrderedDict
 
-
-class N_MFP:
+class N_MFP2:
 
     def __init__(self):
         self.select_cols()

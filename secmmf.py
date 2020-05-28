@@ -10,7 +10,7 @@ import datetime
 from IPython.display import clear_output
 from selenium import webdriver
 from webdriver_manager.chrome import ChromeDriverManager
-from sec_scraper import N_MFP
+from parser import N_MFP2
 
 class color:
    PURPLE = '\033[95m'
@@ -36,16 +36,92 @@ class DictList(dict):
             super(DictList, self).__setitem__(key, [self[key], value])
 
 
+def download_sec_index(data_dir, form_name, start_date=None, end_date=None):
+
+    try:
+        os.makedirs(data_dir)
+        os.chdir(data_dir)
+    except:
+        os.chdir(data_dir)
+
+    current_year = datetime.date.today().year
+    current_quarter = (datetime.date.today().month - 1) // 3 + 1
+    years = list(range(2016, current_year))
+    quarters = ['QTR1', 'QTR2', 'QTR3', 'QTR4']
+    history = [(y, q) for y in years for q in quarters]
+    for i in range(1, current_quarter + 1):
+        history.append((current_year, 'QTR%d' % i))
+    urls = ['https://www.sec.gov/Archives/edgar/full-index/%d/%s/crawler.idx' %
+            (x[0], x[1]) for x in history]
+    urls.sort()
+
+    # Download index files and write content into SQLite
+    con = sqlite3.connect('edgar_htm_idx.db')
+    cur = con.cursor()
+    cur.execute('DROP TABLE IF EXISTS idx')
+    cur.execute(
+        'CREATE TABLE idx (conm TEXT, type TEXT, cik TEXT, date TEXT, path TEXT)')
+
+    for url in urls:
+        lines = requests.get(url).text.splitlines()
+        nameloc = lines[7].find('Company Name')
+        typeloc = lines[7].find('Form Type')
+        cikloc = lines[7].find('CIK')
+        dateloc = lines[7].find('Date Filed')
+        urlloc = lines[7].find('URL')
+        records = [tuple([line[:typeloc].strip(), line[typeloc:cikloc].strip(), line[cikloc:dateloc].strip(),
+                          line[dateloc:urlloc].strip(), line[urlloc:].strip()]) for line in lines[9:]]
+        cur.executemany('INSERT INTO idx VALUES (?, ?, ?, ?, ?)', records)
+        print(url, 'downloaded and wrote to SQLite')
+
+    con.commit()
+    con.close()
+
+    # Write SQLite database to a csv file
+    engine = create_engine('sqlite:///edgar_htm_idx.db')
+    with engine.connect() as conn, conn.begin():
+        data = pandas.read_sql_table('idx', conn)
+        data.to_csv('edgar_htm_idx.csv')
+
+    # Load index information
+    edgar_idx = pandas.read_csv('edgar_htm_idx.csv')
+    edgar_idx = edgar_idx[['conm','type','cik','date','path']]
+
+    nmfp2 = edgar_idx[edgar_idx['type']==form_name].copy()
+    nmfp2.to_csv('index_file.csv',index=False)
+
+    # remove raw index files
+    os.remove('edgar_htm_idx.db')
+    os.remove('edgar_htm_idx.csv')
+
+    # select the date range of interest based on the input argument
+    idx = pd.read_csv('index_file.csv')
+    idx['selector'] = pd.to_datetime(idx['date'],format='%Y-%m-%d')
+    if start_date != None:
+        try:
+            idx=idx[idx['selector']>=start_date]
+        except:
+            pass
+
+    if end_date != None:
+        try:
+            idx=idx[idx['selector']<=end_date]
+        except:
+            pass
+
+    idx.drop(columns='selector').to_csv('index_file.csv',index=False)
+
+
 def generate_index(data_dir, pathfile):
 
-    # general a file containing xml paths for the N-MFP2 form
+    # general a table of paths linked to the XML files, saved to pathfile
 
     print(color.BOLD + color.RED + 'Building the XML path file.' + color.END + '\n')
     count = 0
     edgar_root = "https://www.sec.gov/Archives/edgar/data/"
     with open(data_dir + pathfile, 'w', newline='') as log:
         logwriter = csv.writer(log)
-        with open(data_dir + 'NMFP2_idx.csv', newline='') as infile:
+        with open(data_dir + 'index_file.csv', newline='') as infile:
             records = csv.reader(infile)
             log_row = ['conm', 'type', 'cik', 'accession_num', 'path']
 
@@ -63,6 +139,7 @@ def generate_index(data_dir, pathfile):
                     print(color.BLUE + 'Finished ' + str(count) + ' records...' + color.END)
     print('\n')
 
+
 def scrape(data_dir, pathfile, N_blocks=20, start_block=1, end_block=20):
 
     edgar_root = "https://www.sec.gov/Archives/edgar/data/"
@@ -76,7 +153,7 @@ def scrape(data_dir, pathfile, N_blocks=20, start_block=1, end_block=20):
     block_len = int(N/N_blocks)
     res_len = N%block_len
 
-    mmf_parser = N_MFP() # initialize XML parser
+    mmf_parser = N_MFP2() # initialize XML parser
 
     print(color.BOLD + color.RED + color.UNDERLINE + 'scraping filing data from SEC website ... ' + color.END)
     for i in range(start_block-1,end_block):
@@ -121,7 +198,6 @@ def scrape(data_dir, pathfile, N_blocks=20, start_block=1, end_block=20):
                 print('{:.2f}% finished'.format(perc_run*100))
                 print('Current run time: {:.1f} minutes.'.format(mins_elapse))
                 print('Expected remaining run time: {:.1f} minutes'.format(mins_elapse*multiple_remain))
-
 
 
 def gen_table_fund(data_dir, pathfile, N_blocks=20):
@@ -363,6 +439,7 @@ def gen_table_fund(data_dir, pathfile, N_blocks=20):
 
         data.to_csv(data_path)
 
+
 def parse_port(filepath):
     seclist = []
     general = DictList()
@@ -598,18 +675,19 @@ def gen_table_holdings(data_dir, pathfile):
 
 
 def combine_fund(data_dir,N_blocks=20):
-    os.chdir(data_dir)
+    os.chdir(os.path.join(data_dir,'fund-level'))
     df = pd.read_csv('NMFP2_data_1.csv')
     for i in range(1,N_blocks):
         df = df.append(
-            pd.read_csv('NMFP2_data_{}.csv'.format(i+1)),
+            pd.read_csv('NMFP2_data_{}.csv'.format(i+1),low_memory=False),
             ignore_index=True,
             sort=False
         )
-    df.drop(columns='Unnamed: 0').to_csv('NMFP2_fund.csv')
+    df.drop(columns='Unnamed: 0').to_csv(os.path.join(data_dir,'NMFP2_fund.csv'))
+    os.chdir(data_dir)
 
 def combine_port(data_dir,N_blocks=20):
-    os.chdir(data_dir)
+    os.chdir(os.path.join(data_dir,'holdings-level'))
     df = pd.read_csv('NMFP2_port_1.csv',low_memory=False)
     for i in range(1,N_blocks):
         df = df.append(
@@ -617,28 +695,43 @@ def combine_port(data_dir,N_blocks=20):
             ignore_index=True,
             sort=False
         )
-    df.drop(columns='Unnamed: 0').to_csv('NMFP2_port.csv')
+    df.drop(columns='Unnamed: 0').to_csv(os.path.join(data_dir,'NMFP2_port.csv'))
+    os.chdir(data_dir)
 
 def wrap(data_dir, N_blocks=20):
-
+    os.chdir(data_dir)
     try:
-        os.makedirs(data_dir+'fund-level/')
+        # create a folder to collect fund-level data
+        os.makedirs(os.path.join(data_dir,'fund-level'))
     except:
+        print("Fund info folder exists. Combining datasets...")
+        # if the folder already exists and no existing combined file, create one
         if os.path.exists('NMFP2_fund.csv') == False:
-            combine_fund(data_dir,N_blocks)
-        else:
+            # first move all the files into the created folder
             for i in range(N_blocks):
                 filepath = 'NMFP2_data_{}.csv'.format(i+1)
                 if os.path.exists(filepath):
-                    shutil.move(filepath, data_dir+'fund-level/')
+                    shutil.move(filepath, os.path.join(data_dir,'fund-level'))
+
+            # second create a combined file in data_dir
+            combine_fund(data_dir,N_blocks)
+        else:
+            print("Fund-level files already combined.")
 
     try:
-        os.makedirs(data_dir+'holdings-level/')
+        # create a folder to collect holdings-level data
+        os.makedirs(os.path.join(data_dir,'holdings-level'))
     except:
+        print("Holdings folder exists. Combining portfolio holdings datasets...")
+        # similarly for portfolio holdings
         if os.path.exists('NMFP2_port.csv') == False:
-            combine_port(data_dir,N_blocks)
-        else:
+            # first move all the files into the created folder
             for i in range(N_blocks):
                 filepath = 'NMFP2_port_{}.csv'.format(i+1)
                 if os.path.exists(filepath):
-                    shutil.move(filepath, data_dir+'holdings-level/')
+                    shutil.move(filepath, os.path.join(data_dir,'holdings-level'))
+
+            # second create a combined file in data_dir
+            combine_port(data_dir,N_blocks)
+        else:
+            print("Holdings-level files already combined.")
