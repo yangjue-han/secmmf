@@ -129,7 +129,7 @@ def generate_index(data_dir, pathfile):
     print(color.BOLD + color.RED + 'Building the XML path file.' + color.END + '\n')
     count = 0
     edgar_root = "https://www.sec.gov/Archives/edgar/data/"
-    with open(data_dir + pathfile, 'w', newline='') as log:
+    with open(os.path.join(data_dir,pathfile), 'w', newline='') as log:
         logwriter = csv.writer(log)
         with open(os.path.join(data_dir,'index_file.csv'), newline='') as infile:
             records = csv.reader(infile)
@@ -714,34 +714,37 @@ def wrap(data_dir, N_blocks=20):
         # create a folder to collect fund-level data
         os.makedirs(os.path.join(data_dir,'fund-level'))
     except:
+        pass
         print("Fund info folder exists. Combining datasets...")
-        # if the folder already exists and no existing combined file, create one
-        if os.path.exists('NMFP2_fund.csv') == False:
-            # first move all the files into the created folder
-            for i in range(N_blocks):
-                filepath = 'NMFP2_data_{}.csv'.format(i+1)
-                if os.path.exists(filepath):
-                    shutil.move(filepath, os.path.join(data_dir,'fund-level'))
 
-            # second create a combined file in data_dir
-            combine_fund(data_dir,N_blocks)
-        else:
-            print("Fund-level files already combined.")
+    # if the folder already exists and no existing combined file, create one
+    if os.path.exists('NMFP2_fund.csv') == False:
+        # first move all the files into the created folder
+        for i in range(N_blocks):
+            filepath = 'NMFP2_data_{}.csv'.format(i+1)
+            if os.path.exists(filepath):
+                shutil.move(filepath, os.path.join(data_dir,'fund-level'))
+
+        # second create a combined file in data_dir
+        combine_fund(data_dir,N_blocks)
+    else:
+        print("Fund-level files already combined.")
 
     try:
         # create a folder to collect holdings-level data
         os.makedirs(os.path.join(data_dir,'holdings-level'))
     except:
         print("Holdings folder exists. Combining portfolio holdings datasets...")
-        # similarly for portfolio holdings
-        if os.path.exists('NMFP2_port.csv') == False:
-            # first move all the files into the created folder
-            for i in range(N_blocks):
-                filepath = 'NMFP2_port_{}.csv'.format(i+1)
-                if os.path.exists(filepath):
-                    shutil.move(filepath, os.path.join(data_dir,'holdings-level'))
 
-            # second create a combined file in data_dir
-            combine_port(data_dir,N_blocks)
-        else:
-            print("Holdings-level files already combined.")
+    # similarly for portfolio holdings
+    if os.path.exists('NMFP2_port.csv') == False:
+        # first move all the files into the created folder
+        for i in range(N_blocks):
+            filepath = 'NMFP2_port_{}.csv'.format(i+1)
+            if os.path.exists(filepath):
+                shutil.move(filepath, os.path.join(data_dir,'holdings-level'))
+
+        # second create a combined file in data_dir
+        combine_port(data_dir,N_blocks)
+    else:
+        print("Holdings-level files already combined.")
