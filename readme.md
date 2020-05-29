@@ -14,7 +14,7 @@ pip install secmmf
 
 ## Usage
 
-The module `secmmf` contains a set of functions that parse and download the information in N-MFP2 filings. The user should first specify the path of a directory to store the downloaded data to `data_dir` and the storage of `data_dir` should be at least 20GBs. 
+The module `secmmf` contains a set of functions that parse and download the information in N-MFP2 filings. The user should first specify the path of a directory to store the downloaded data to `data_dir` and the storage of `data_dir` should be at least 20GBs. Note that the package can only be used to download N-MFP2 filings, but could be extended to download other filings with a similar format. The package does not provide any data cleaning function.
 
 ```
 import secmmf
