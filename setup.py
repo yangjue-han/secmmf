@@ -1,8 +1,10 @@
+import setuptools
+
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name="secmmf", 
+    name="secmmf",
     version="0.0.1",
     author="Yangjue Han",
     author_email="yangjue.han20@gmail.com",

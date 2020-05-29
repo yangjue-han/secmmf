@@ -1,0 +1,9 @@
+setup.py
+secmmf/__init__.py
+secmmf/parser.py
+secmmf/secmmf.py
+secmmf.egg-info/PKG-INFO
+secmmf.egg-info/SOURCES.txt
+secmmf.egg-info/dependency_links.txt
+secmmf.egg-info/top_level.txt
+test/__init__.py
