@@ -23,9 +23,14 @@ data_dir = ## YOUR DIRECTORY HERE ##
 pathfile = 'xmlpath.csv' # no need to change this
 ```
 
-First we download and extract the paths of filings from SEC EDGAR system using method `download_sec_index()`. By specifying `start_date` and `end_date`, the user will limit the time range to [`start_date`,`end_date`]. The default start date is 2016-10 and end date is the current month. The method will output a csv file named `index_file.csv` in `data_dir`.
+First we download and extract the paths of filings from SEC EDGAR system using method `download_sec_index()`. By specifying `start_date` and `end_date`, the user will limit the time range to [`start_date`,`end_date`]. The default start date is 2016-10 and end date is the current month. The method will output a csv file named `index_file.csv` in `data_dir`. We then use `generate_index()` to create a file of urls linked to XML files that can be easily parsed, named `pathfile`.
 ```
+# download raw urls for SEC filings
 secmmf.download_sec_index(data_dir, form_name = 'N-MFP2', start_date = '2016-10', end_date = '2020-05')
+
+# turn raw urls into urls for XML files
+generate_index(data_dir, pathfile)
 ```
+
 
 
