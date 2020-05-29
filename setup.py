@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="secmmf",
-    version="1.0.1",
+    version="1.0.2",
     author="Yangjue Han",
     author_email="yangjue.han20@gmail.com",
     description="Python scraper for SEC N-MFP2 filings.",
