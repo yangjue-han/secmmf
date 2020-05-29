@@ -1,10 +1,10 @@
 # SEC N-MFP2 Money Market Fund Holdings Data
 
-- Author: Yangjue Han 
+- Author: Yangjue Han
 - Date: May 2020
 
 ## Introduction
-This repository contains code that enables the user to parse and download money market fund holdings information in N-MFP2 filings from SEC EDGAR system. At the end of every month, all U.S. money market funds are required to report their securities holdings to SEC, including identification, maturity, market value, yield to maturity, issuer information, and other features. For repurchase agreement contracts, money market funds also have to report information on collateral securities. The granularity of this dataset provides an unparallel opportunity for financial economists to study questions related to the shadow banking system. 
+This repository contains code that enables the user to parse and download money market fund holdings information in N-MFP2 filings from SEC EDGAR system. At the end of every month, all U.S. money market funds are required to report their securities holdings to SEC, including identification, maturity, market value, yield to maturity, issuer information, and other features. For repurchase agreement contracts, money market funds also have to report information on collateral securities. The granularity of this dataset provides an unparallel opportunity for financial economists to study questions related to the shadow banking system.
 
 ## Installation
 
@@ -32,5 +32,8 @@ secmmf.download_sec_index(data_dir, form_name = 'N-MFP2', start_date = '2016-10'
 generate_index(data_dir, pathfile)
 ```
 
+Next, we download XML files from `pathfile` and parse them into csv files using `scrape()`. Paths contained in `pathfile` are divided into 20 blocks and the corresponding csv files will be saved into 20 different subfolders. Depending on the number of files to download and internet connection, this step might take up to 4 hours. If the program is interrupted at any block, the user can specify `start_block` or `end_block` to modify the exact portion of files to download.
 
-
+```
+scrape(data_dir, pathfile, N_blocks=20, start_block=1, end_block=20)
+```
