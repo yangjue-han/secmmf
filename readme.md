@@ -9,10 +9,20 @@ This repository contains code that enables the user to parse and download money 
 ## Installation
 
 ```
-pip install secmmf
+pip install -i https://test.pypi.org/simple/ secmmf==0.0.1
 ```
 
 ## Usage
+```
+import secmmf
 
+# specify the directory used to store the data
+# we recommand a local folder since the file could be several GB
+data_dir = ## YOUR DIRECTORY HERE ##
+pathfile = 'xmlpath.csv' # no need to change this
+
+# download index files
+secmmf.download_sec_index(data_dir, form_name = 'N-MFP2', start_date = '2016-10', end_date = '2020-05')
+```
 
 
