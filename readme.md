@@ -1,4 +1,4 @@
-# SEC N-MFP2 Money Market Fund Holdings Data
+# secmmf - SEC Money Market Fund Data Scraper
 
 - Author: Yangjue Han
 - Date: May 2020
