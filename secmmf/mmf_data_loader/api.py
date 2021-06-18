@@ -1,50 +1,32 @@
 import csv
-import sys, os
-import random
+import sys
+import os
 import time
+import timeit
+import random
+import datetime
+import shutil
+from IPython.display import clear_output
+from tqdm.notebook import tqdm
+from pathlib import Path
+
 import pandas as pd
 import numpy as np
-import timeit
-import datetime
 
 from sqlalchemy import create_engine
 import sqlite3
 import requests
-import shutil
 from selenium import webdriver
 from webdriver_manager.chrome import ChromeDriverManager
-from IPython.display import clear_output
 
-from secmmf.parser import N_MFP2
-
-class color:
-   PURPLE = '\033[95m'
-   CYAN = '\033[96m'
-   DARKCYAN = '\033[36m'
-   BLUE = '\033[94m'
-   GREEN = '\033[92m'
-   YELLOW = '\033[93m'
-   RED = '\033[91m'
-   BOLD = '\033[1m'
-   UNDERLINE = '\033[4m'
-   END = '\033[0m'
-
-
-class DictList(dict):
-    def __setitem__(self, key, value):
-        try:
-            # Assumes there is a list on the key
-            self[key].append(value)
-        except KeyError: # If it fails, because there is no key
-            super(DictList, self).__setitem__(key, value)
-        except AttributeError: # If it fails because it is not a list
-            super(DictList, self).__setitem__(key, [self[key], value])
+from secmmf.mmf_data_loader.form_parsers import N_MFP2
+from secmmf.mmf_data_loader.utils import color, DictList
 
 
 def download_sec_index(data_dir, form_name, start_date=None, end_date=None):
 
     try:
-        os.makedirs(data_dir)
+        os.mkdir(data_dir)
         os.chdir(data_dir)
     except:
         os.chdir(data_dir)
@@ -129,9 +111,9 @@ def generate_index(data_dir, pathfile):
     print(color.BOLD + color.RED + 'Building the XML path file.' + color.END + '\n')
     count = 0
     edgar_root = "https://www.sec.gov/Archives/edgar/data/"
-    with open(os.path.join(data_dir,pathfile), 'w', newline='') as log:
+    with open(data_dir/pathfile, 'w', newline='') as log:
         logwriter = csv.writer(log)
-        with open(os.path.join(data_dir,'index_file.csv'), newline='') as infile:
+        with open(data_dir/'index_file.csv', newline='') as infile:
             records = csv.reader(infile)
             log_row = ['conm', 'type', 'cik', 'accession_num', 'path']
 
@@ -154,7 +136,7 @@ def scrape(data_dir, pathfile, N_blocks=20, start_block=1, end_block=20):
 
     edgar_root = "https://www.sec.gov/Archives/edgar/data/"
 
-    allpaths = pd.read_csv(os.path.join(data_dir,pathfile), dtype = str)
+    allpaths = pd.read_csv(data_dir/pathfile, dtype = str)
     cik = [x for x in list(allpaths['cik'].values)]
     acc = [x for x in list(allpaths['accession_num'].values)]
     xmlpaths = [edgar_root + x[0] + '/' + x[1] + '/primary_doc.xml' for x in zip(cik,acc)]
@@ -174,40 +156,22 @@ def scrape(data_dir, pathfile, N_blocks=20, start_block=1, end_block=20):
         else:
             block_paths = xmlpaths[i*block_len:]
 
-        # set up timer
-        start = timeit.default_timer()
-        n = 0
-
         # make a data directory
-        blockpath = os.path.join(data_dir,'block_{}/'.format(i+1))
+        blockpath = data_dir/('block_{}'.format(i+1))
         os.mkdir(blockpath)
 
         # scraping loop
-        for f in block_paths:
+        for f in tqdm(block_paths):
             data = mmf_parser.parse_csv(f)
             cik_acc = f.split('/')[-3:-1]
+            cache_file=cik_acc[0]+'_'+cik_acc[1]+'.csv'
 
-            with open(blockpath + cik_acc[0] + '_' + cik_acc[1] + '.csv' , 'w', newline='') as log:
+            with open(blockpath/cache_file, 'w', newline='') as log:
                 logwriter = csv.writer(log)
                 for item in data:
                     keys = [x.strip().replace('\n','') for x in item.split(':')[0].split('_')]
                     value = item.split(':')[1].strip().replace('\n','')
                     logwriter.writerow(keys[1:] + [value])
-
-            # progress tracker
-            n += 1
-            if n%10 == 0:
-                clear_output(wait = True)
-                stop = timeit.default_timer()
-                perc_run = n/block_len
-                multiple_remain = (block_len-n)/n
-                mins_elapse = (stop-start)/60
-
-                _ = os.system('clear')
-                print('Block: {}'.format(i+1))
-                print('{:.2f}% finished'.format(perc_run*100))
-                print('Current run time: {:.1f} minutes.'.format(mins_elapse))
-                print('Expected remaining run time: {:.1f} minutes'.format(mins_elapse*multiple_remain))
 
 
 def gen_table_fund(data_dir, pathfile, N_blocks=20):
