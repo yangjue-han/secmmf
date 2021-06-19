@@ -158,20 +158,28 @@ def scrape(data_dir, pathfile, N_blocks=20, start_block=1, end_block=20):
 
         # make a data directory
         blockpath = data_dir/('block_{}'.format(i+1))
-        os.mkdir(blockpath)
+
+        try:
+            os.mkdir(blockpath)
+        except:
+            pass
 
         # scraping loop
         for f in tqdm(block_paths):
-            data = mmf_parser.parse_csv(f)
-            cik_acc = f.split('/')[-3:-1]
-            cache_file=cik_acc[0]+'_'+cik_acc[1]+'.csv'
 
-            with open(blockpath/cache_file, 'w', newline='') as log:
-                logwriter = csv.writer(log)
-                for item in data:
-                    keys = [x.strip().replace('\n','') for x in item.split(':')[0].split('_')]
-                    value = item.split(':')[1].strip().replace('\n','')
-                    logwriter.writerow(keys[1:] + [value])
+            if os.path.exist(f):
+                pass
+            else:                
+                data = mmf_parser.parse_csv(f)
+                cik_acc = f.split('/')[-3:-1]
+                cache_file=cik_acc[0]+'_'+cik_acc[1]+'.csv'
+
+                with open(blockpath/cache_file, 'w', newline='') as log:
+                    logwriter = csv.writer(log)
+                    for item in data:
+                        keys = [x.strip().replace('\n','') for x in item.split(':')[0].split('_')]
+                        value = item.split(':')[1].strip().replace('\n','')
+                        logwriter.writerow(keys[1:] + [value])
 
 
 def gen_table_fund(data_dir, pathfile, N_blocks=20):
