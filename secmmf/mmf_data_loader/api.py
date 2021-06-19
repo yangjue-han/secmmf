@@ -167,9 +167,9 @@ def scrape(data_dir, pathfile, N_blocks=20, start_block=1, end_block=20):
         # scraping loop
         for f in tqdm(block_paths):
 
-            if os.path.exist(f):
+            if os.path.exists(f):
                 pass
-            else:                
+            else:
                 data = mmf_parser.parse_csv(f)
                 cik_acc = f.split('/')[-3:-1]
                 cache_file=cik_acc[0]+'_'+cik_acc[1]+'.csv'
