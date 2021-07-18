@@ -1,6 +1,7 @@
 import pandas as pd
 import bs4 as bs
 import untangle as ut
+import requests
 import urllib.request as rq
 from collections import OrderedDict
 
